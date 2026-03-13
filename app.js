@@ -14,12 +14,15 @@ mongoose.connect("mongodb://localhost:27017/E-Commerce")
         console.log({"Err":err})
     })
 
-
 app.use('/api/user',userRouter)
+app.use("/",(req,res)=>{
+    res.send("Hello Bro")
+    res.end()
+})
 
-
-app.listen(2000,()=>{
-    console.log("server start on 2000")
+PORT = 2232
+app.listen(PORT,()=>{
+    console.log(`server start on http://localhost:${PORT} `)
 })
 
 
