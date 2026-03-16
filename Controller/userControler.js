@@ -6,10 +6,15 @@ exports.addUser = async (req, res) => {
         const user = new User(req.body)
         await user.save();
 
+        if(req.file){
+            user.profileImage = req.file.path
+        }
+        
         res.status(201).json({
             message: "User Created",
             data: user
         })
+        console.log({"user=":user})
     }
     catch (err) {
         res.status(500).json({ error: err.message })
