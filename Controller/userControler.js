@@ -6,18 +6,23 @@ const bcrypt = require("bcrypt")
 exports.addUser = async (req, res) => {
     try {
 
+        const data = { ...req.body }
+
         // profile image
         if (req.file) {
-            req.body.profileImage = req.file.path
+            data.profileImage = req.file.path
         }
 
         // hash password
-        const salt = await bcrypt.genSalt(10)
-        req.body.password = await bcrypt.hash(req.body.password, salt)
+         if (data.password) {
+            const salt = await bcrypt.genSalt(10)
+            data.password = await bcrypt.hash(data.password, salt)
+        }
 
-        const user = new User(req.body)
+        const user = new User(data)
 
         await user.save()
+
 
         res.status(201).json({
             message: "User Created",
@@ -35,11 +40,11 @@ exports.addUser = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
     try {
-        const user = await User.find();
+        const users = await User.find().select("-password").lean();
 
         res.status(200).json({
             message: "user Fetch succesfully",
-            data: user
+            data: users
         })
 
     } catch (err) {
@@ -49,13 +54,17 @@ exports.getUsers = async (req, res) => {
 
 exports.getOneUser = async (req,res)=>{
     try{
-        const OneUser = await User.findById(req.params.id)
+        const OneUser = await User.findById(req.params.id).select("-password").lean()
 
         res.status(200).json({
             message:"User Fetch Succesfully",
             data:OneUser
         })
         
+        if(!OneUser){
+            return res.status(404).json({message:"User Not Found"})
+        }
+
     }catch (err) {
         res.status(500).json({ error: err.message })
     }
@@ -64,35 +73,44 @@ exports.getOneUser = async (req,res)=>{
 
 exports.patchUser = async (req, res) => {
     try {
+
+        const updateData = { ...req.body }
+
+        if (req.file) {
+            updateData.profileImage = req.file.filename
+        }
+
+        if (updateData.password) {
+            const salt = await bcrypt.genSalt(10)
+            updateData.password = await bcrypt.hash(updateData.password, salt)
+        }
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
-            { $set: req.body },
+            { $set: updateData },
             {
                 new: true,
                 runValidators: true
             }
-
-        );
+        ).select("-password")
 
         if (!updatedUser) {
-            return res.status(404).json({ message: "User not Found" });
+            return res.status(404).json({ message: "User not Found" })
         }
 
-        res.status(200).json(updatedUser);
+        res.status(200).json(updatedUser)
 
     } catch (err) {
-        res.status(200).json({ error: err.message })
+        res.status(500).json({ error: err.message })
     }
 }
 
 exports.deleteUser = async (req, res) => {
     try {
-        const id = req.params.id;
 
-        const deleteUser = await User.findByIdAndDelete(id)
+        const deleteUser = await User.findByIdAndDelete(req.params.id)
 
         if (!deleteUser) {
-            res.status(404).json({ message: "User Not Found" })
+            return res.status(404).json({ message: "User Not Found" })
         }
 
         res.status(200).json({
@@ -103,7 +121,6 @@ exports.deleteUser = async (req, res) => {
     catch (err) {
         res.status(400).json({ err: err.message })
     }
-
 }
 
 
