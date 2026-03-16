@@ -1,7 +1,7 @@
 
 const User = require("../Model/UserSchema")
 const bcrypt = require("bcrypt")
-
+const jwt = require("jsonwebtoken")
 
 exports.addUser = async (req, res) => {
     try {
@@ -37,6 +37,57 @@ exports.addUser = async (req, res) => {
     }
 }
 
+exports.loginUser = async (req, res) => {
+    try {
+
+        const { email, password } = req.body
+
+        // check email
+        const user = await User.findOne({ email })
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            })
+        }
+
+        // compare password
+        const isMatch = await bcrypt.compare(password, user.password)
+
+        if (!isMatch) {
+            return res.status(401).json({
+                message: "Invalid password"
+            })
+        }
+
+        // create token
+        const token = jwt.sign(
+            {
+                id: user._id,
+                role: user.role
+            },
+            "secretkey",
+            {
+                expiresIn: "1d"
+            }
+        )
+
+        res.status(200).json({
+            message: "Login successful",
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                profileImage: user.profileImage
+            }
+        })
+
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}
 
 exports.getUsers = async (req, res) => {
     try {
