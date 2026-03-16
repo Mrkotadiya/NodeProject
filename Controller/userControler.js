@@ -1,20 +1,31 @@
 
 const User = require("../Model/UserSchema")
+const bcrypt = require("bcrypt")
+
 
 exports.addUser = async (req, res) => {
     try {
-        const user = new User(req.body)
-        await user.save();
 
-        if(req.file){
-            user.profileImage = req.file.path
+        // profile image
+        if (req.file) {
+            req.body.profileImage = req.file.path
         }
-        
+
+        // hash password
+        const salt = await bcrypt.genSalt(10)
+        req.body.password = await bcrypt.hash(req.body.password, salt)
+
+        const user = new User(req.body)
+
+        await user.save()
+
         res.status(201).json({
             message: "User Created",
             data: user
         })
-        console.log({"user=":user})
+
+        console.log({ user: user })
+
     }
     catch (err) {
         res.status(500).json({ error: err.message })
