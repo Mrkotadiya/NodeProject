@@ -125,6 +125,12 @@ exports.getOneUser = async (req,res)=>{
 exports.patchUser = async (req, res) => {
     try {
 
+        if (req.user.id !== req.params.id) {
+            return res.status(403).json({
+                message: "You can only update your own profile"
+            })
+        }
+
         const updateData = { ...req.body }
 
         if (req.file) {
